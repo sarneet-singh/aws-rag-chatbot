@@ -1,16 +1,94 @@
-# React + Vite
+# Frontend — AWS RAG Chatbot
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 18 + Vite SPA. Authenticates users via Amazon Cognito (OAuth 2.0 authorization code flow), then streams questions to the RAG API and renders answers with cited sources and thumbs up/down feedback.
 
-Currently, two official plugins are available:
+## Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+frontend/
+├── src/
+│   ├── App.jsx               # Root component: auth gate, chat UI, session state
+│   ├── api.js                # Typed fetch wrapper; injects Authorization header
+│   ├── auth.js               # Cognito login / logout / token helpers
+│   └── components/
+│       ├── ChatMessage.jsx   # Renders a single message bubble (user or assistant)
+│       └── Sources.jsx       # Collapsible sources panel with URLs
+├── index.html
+├── vite.config.js
+└── package.json
+```
 
-## React Compiler
+## Auth Flow
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant App as React App
+    participant Cognito as Cognito Hosted UI
+    participant API as API Gateway
 
-## Expanding the ESLint configuration
+    U->>App: Visit /
+    App->>App: Check sessionStorage for id_token
+    App->>Cognito: Redirect to /login (code flow)
+    Cognito-->>App: Redirect to /callback?code=...
+    App->>Cognito: POST /oauth2/token (exchange code)
+    Cognito-->>App: id_token (JWT)
+    App->>App: Store id_token in sessionStorage
+    U->>App: Ask a question
+    App->>API: POST /query { Authorization: Bearer <JWT> }
+    API-->>App: { answer, sources, session_id, message_id }
+    App->>U: Render answer + sources
+    U->>App: Thumbs up/down
+    App->>API: POST /feedback { session_id, message_id, rating }
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Environment Variables
+
+Create `frontend/.env` (or set in CI):
+
+```env
+VITE_COGNITO_DOMAIN=https://<your-pool-domain>.auth.<region>.amazoncognito.com
+VITE_COGNITO_CLIENT_ID=<cognito-app-client-id>
+VITE_API_URL=https://<api-gateway-id>.execute-api.<region>.amazonaws.com
+```
+
+All three values are output by `terraform apply` — see `terraform/outputs.tf`.
+
+Copy the example file:
+
+```bash
+cp .env.example .env
+```
+
+## Local Development
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+```
+
+The dev server proxies nothing by default — point `VITE_API_URL` at a deployed API Gateway endpoint or set up a local mock.
+
+## Build
+
+```bash
+npm run build    # outputs to dist/
+npm run preview  # serve the production build locally
+```
+
+## Deploy to S3
+
+After `terraform apply`, deploy the built assets:
+
+```bash
+BUCKET=$(terraform -chdir=../terraform output -raw site_bucket)
+aws s3 sync dist/ s3://$BUCKET --delete
+```
+
+CloudFront serves the bucket through Origin Access Control (OAC). All 403s are rewritten to `index.html` for client-side routing.
+
+## Security Notes
+
+- `id_token` is stored in `sessionStorage` (cleared when the tab closes), not `localStorage`
+- CORS is handled by API Gateway — no `Access-Control-Allow-Origin` headers are set by Lambdas
+- The Cognito app client has no client secret (public client, PKCE code flow)
