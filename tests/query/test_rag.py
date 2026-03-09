@@ -6,8 +6,10 @@ from moto import mock_aws
 import boto3
 
 os.environ.update({
-    "PINECONE_API_KEY": "test", "PINECONE_INDEX_NAME": "test-index",
-    "OPENAI_API_KEY": "test", "DYNAMODB_SESSIONS_TABLE": "test-sessions",
+    "PINECONE_INDEX_NAME": "test-index",
+    "PINECONE_API_KEY_SSM_PATH": "/test/pinecone_api_key",
+    "OPENAI_API_KEY_SSM_PATH": "/test/openai_api_key",
+    "DYNAMODB_SESSIONS_TABLE": "test-sessions",
     "DYNAMODB_FEEDBACK_TABLE": "test-feedback",
     "AWS_DEFAULT_REGION": "us-east-1",
 })
@@ -16,6 +18,9 @@ os.environ.update({
 @pytest.fixture
 def dynamo_tables():
     with mock_aws():
+        ssm = boto3.client("ssm", region_name="us-east-1")
+        ssm.put_parameter(Name="/test/pinecone_api_key", Value="test-pinecone-key", Type="SecureString")
+        ssm.put_parameter(Name="/test/openai_api_key", Value="test-openai-key", Type="SecureString")
         ddb = boto3.resource("dynamodb", region_name="us-east-1")
         ddb.create_table(TableName="test-sessions", KeySchema=[
             {"AttributeName": "session_id", "KeyType": "HASH"},

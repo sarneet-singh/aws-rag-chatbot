@@ -7,8 +7,11 @@ import boto3
 import litellm
 from pinecone import Pinecone
 
-PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
+from src.utils.ssm import get_secret
+
 PINECONE_INDEX_NAME = os.environ["PINECONE_INDEX_NAME"]
+PINECONE_API_KEY_SSM_PATH = os.environ["PINECONE_API_KEY_SSM_PATH"]
+OPENAI_API_KEY_SSM_PATH = os.environ["OPENAI_API_KEY_SSM_PATH"]
 SESSIONS_TABLE = os.environ["DYNAMODB_SESSIONS_TABLE"]
 FEEDBACK_TABLE = os.environ["DYNAMODB_FEEDBACK_TABLE"]
 EMBEDDING_MODEL = "text-embedding-3-small"
@@ -20,7 +23,7 @@ def _ddb():
 
 
 def get_pinecone_index():
-    return Pinecone(api_key=PINECONE_API_KEY).Index(PINECONE_INDEX_NAME)
+    return Pinecone(api_key=get_secret(PINECONE_API_KEY_SSM_PATH)).Index(PINECONE_INDEX_NAME)
 
 
 SYSTEM_PROMPT = """You are an expert AWS Solutions Architect assistant.
@@ -30,6 +33,7 @@ Always be concise and accurate. Do not make up AWS service details."""
 
 
 def query_rag(query: str, session_id: str) -> dict:
+    litellm.api_key = get_secret(OPENAI_API_KEY_SSM_PATH)
     embed_response = litellm.embedding(model=EMBEDDING_MODEL, input=[query])
     query_vector = embed_response.data[0].embedding
 

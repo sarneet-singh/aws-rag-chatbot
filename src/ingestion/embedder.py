@@ -5,20 +5,24 @@ import boto3
 import litellm
 from pinecone import Pinecone
 
+from src.utils.ssm import get_secret
+
 S3 = boto3.client("s3")
 CHUNKS_BUCKET = os.environ["CHUNKS_BUCKET"]
-PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
 PINECONE_INDEX_NAME = os.environ["PINECONE_INDEX_NAME"]
+PINECONE_API_KEY_SSM_PATH = os.environ["PINECONE_API_KEY_SSM_PATH"]
+OPENAI_API_KEY_SSM_PATH = os.environ["OPENAI_API_KEY_SSM_PATH"]
 EMBEDDING_MODEL = "text-embedding-3-small"
 BATCH_SIZE = 50
 
 
 def get_pinecone_index():
-    pc = Pinecone(api_key=PINECONE_API_KEY)
+    pc = Pinecone(api_key=get_secret(PINECONE_API_KEY_SSM_PATH))
     return pc.Index(PINECONE_INDEX_NAME)
 
 
 def embed_and_upsert(chunks: list[dict]) -> None:
+    litellm.api_key = get_secret(OPENAI_API_KEY_SSM_PATH)
     index = get_pinecone_index()
     for i in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[i : i + BATCH_SIZE]

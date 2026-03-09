@@ -51,10 +51,10 @@ resource "aws_lambda_function" "embedder" {
   source_code_hash = data.archive_file.scraper.output_base64sha256
   environment {
     variables = {
-      CHUNKS_BUCKET       = aws_s3_bucket.chunks.bucket
-      PINECONE_API_KEY    = var.pinecone_api_key
-      PINECONE_INDEX_NAME = var.pinecone_index_name
-      OPENAI_API_KEY      = var.openai_api_key
+      CHUNKS_BUCKET             = aws_s3_bucket.chunks.bucket
+      PINECONE_INDEX_NAME       = var.pinecone_index_name
+      PINECONE_API_KEY_SSM_PATH = var.pinecone_api_key_ssm_path
+      OPENAI_API_KEY_SSM_PATH   = var.openai_api_key_ssm_path
     }
   }
 }

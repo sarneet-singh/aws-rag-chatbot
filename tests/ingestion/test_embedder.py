@@ -6,9 +6,10 @@ from moto import mock_aws
 import boto3
 
 os.environ["CHUNKS_BUCKET"] = "test-chunks-bucket"
-os.environ["PINECONE_API_KEY"] = "test-key"
 os.environ["PINECONE_INDEX_NAME"] = "test-index"
-os.environ["OPENAI_API_KEY"] = "test-openai-key"
+os.environ["PINECONE_API_KEY_SSM_PATH"] = "/test/pinecone_api_key"
+os.environ["OPENAI_API_KEY_SSM_PATH"] = "/test/openai_api_key"
+os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
 
 @pytest.fixture
@@ -20,6 +21,9 @@ def s3_with_chunks():
                  "title": "S3 Overview", "source_url": "https://aws.amazon.com/s3",
                  "published_date": "2026-01-01", "doc_type": "blog"}
         s3.put_object(Bucket="test-chunks-bucket", Key="run/abc-123.json", Body=json.dumps(chunk))
+        ssm = boto3.client("ssm", region_name="us-east-1")
+        ssm.put_parameter(Name="/test/pinecone_api_key", Value="test-pinecone-key", Type="SecureString")
+        ssm.put_parameter(Name="/test/openai_api_key", Value="test-openai-key", Type="SecureString")
         yield s3
 
 

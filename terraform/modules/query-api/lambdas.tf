@@ -23,6 +23,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
     Statement = [
       { Effect = "Allow", Action = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query"], Resource = [aws_dynamodb_table.sessions.arn, aws_dynamodb_table.feedback.arn] },
       { Effect = "Allow", Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource = "*" },
+      { Effect = "Allow", Action = ["ssm:GetParameter"], Resource = "arn:aws:ssm:*:*:parameter/${var.project_name}/*" },
     ]
   })
 }
@@ -38,11 +39,11 @@ resource "aws_lambda_function" "rag" {
   source_code_hash = data.archive_file.query.output_base64sha256
   environment {
     variables = {
-      PINECONE_API_KEY         = var.pinecone_api_key
-      PINECONE_INDEX_NAME      = var.pinecone_index_name
-      OPENAI_API_KEY           = var.openai_api_key
-      DYNAMODB_SESSIONS_TABLE  = aws_dynamodb_table.sessions.name
-      DYNAMODB_FEEDBACK_TABLE  = aws_dynamodb_table.feedback.name
+      PINECONE_INDEX_NAME       = var.pinecone_index_name
+      PINECONE_API_KEY_SSM_PATH = var.pinecone_api_key_ssm_path
+      OPENAI_API_KEY_SSM_PATH   = var.openai_api_key_ssm_path
+      DYNAMODB_SESSIONS_TABLE   = aws_dynamodb_table.sessions.name
+      DYNAMODB_FEEDBACK_TABLE   = aws_dynamodb_table.feedback.name
     }
   }
 }
@@ -58,11 +59,11 @@ resource "aws_lambda_function" "feedback" {
   source_code_hash = data.archive_file.query.output_base64sha256
   environment {
     variables = {
-      PINECONE_API_KEY         = var.pinecone_api_key
-      PINECONE_INDEX_NAME      = var.pinecone_index_name
-      OPENAI_API_KEY           = var.openai_api_key
-      DYNAMODB_SESSIONS_TABLE  = aws_dynamodb_table.sessions.name
-      DYNAMODB_FEEDBACK_TABLE  = aws_dynamodb_table.feedback.name
+      PINECONE_INDEX_NAME       = var.pinecone_index_name
+      PINECONE_API_KEY_SSM_PATH = var.pinecone_api_key_ssm_path
+      OPENAI_API_KEY_SSM_PATH   = var.openai_api_key_ssm_path
+      DYNAMODB_SESSIONS_TABLE   = aws_dynamodb_table.sessions.name
+      DYNAMODB_FEEDBACK_TABLE   = aws_dynamodb_table.feedback.name
     }
   }
 }

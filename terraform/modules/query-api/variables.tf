@@ -4,14 +4,6 @@ variable "cloudfront_domain" {}
 variable "cognito_user_pool_id" {}
 variable "cognito_client_id" {}
 
-variable "openai_api_key" {
-  sensitive = true
-}
-
-variable "pinecone_api_key" {
-  sensitive = true
-}
-
-variable "pinecone_index_name" {
-  default = "aws-rag"
-}
+variable "pinecone_index_name" { default = "aws-rag" }
+variable "openai_api_key_ssm_path" {}
+variable "pinecone_api_key_ssm_path" {}
