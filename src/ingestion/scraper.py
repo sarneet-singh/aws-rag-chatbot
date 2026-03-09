@@ -12,7 +12,6 @@ RAW_BUCKET = os.environ["RAW_BUCKET"]
 BASE_BLOG_URL = "https://aws.amazon.com/blogs/aws"
 BASE_WHITEPAPER_URL = "https://docs.aws.amazon.com/whitepapers/latest/aws-overview/introduction.html"
 BASE_NEW_URL = "https://aws.amazon.com/new"
-BASE_REPOST_URL = "https://repost.aws"
 
 
 def _get(url: str, timeout: int = 10) -> BeautifulSoup | None:
@@ -83,23 +82,6 @@ def scrape_new_announcements(max_pages: int = 3) -> list[dict]:
     return docs
 
 
-def scrape_repost(max_pages: int = 2) -> list[dict]:
-    docs = []
-    soup = _get(f"{BASE_REPOST_URL}/articles")
-    if not soup:
-        return docs
-    for item in soup.select("article"):
-        link = item.find("a")
-        if not link:
-            continue
-        href = link.get("href", "")
-        source_url = href if href.startswith("http") else f"{BASE_REPOST_URL}{href}"
-        title = link.get_text(strip=True)
-        docs.append({"title": title, "content": title, "source_url": source_url,
-                     "published_date": "", "doc_type": "repost"})
-    return docs
-
-
 def upload_raw_docs(docs: list[dict], bucket: str) -> None:
     run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     for doc in docs:
@@ -113,6 +95,5 @@ def handler(event: dict, context) -> dict:
     all_docs.extend(scrape_aws_blogs())
     all_docs.extend(scrape_whitepapers())
     all_docs.extend(scrape_new_announcements())
-    all_docs.extend(scrape_repost())
     upload_raw_docs(all_docs, RAW_BUCKET)
     return {"statusCode": 200, "body": json.dumps({"docs_ingested": len(all_docs)})}

@@ -43,12 +43,10 @@ def test_lambda_handler_invokes_all_sources(s3_bucket):
     with patch("src.ingestion.scraper.scrape_aws_blogs") as mock_blogs, \
          patch("src.ingestion.scraper.scrape_whitepapers") as mock_wp, \
          patch("src.ingestion.scraper.scrape_new_announcements") as mock_new, \
-         patch("src.ingestion.scraper.scrape_repost") as mock_repost, \
          patch("src.ingestion.scraper.upload_raw_docs") as mock_upload:
         mock_blogs.return_value = [{"title": "b", "content": "x", "source_url": "u", "published_date": "d", "doc_type": "blog"}]
         mock_wp.return_value = []
         mock_new.return_value = []
-        mock_repost.return_value = []
         result = handler({}, {})
     assert result["statusCode"] == 200
     mock_upload.assert_called_once()
