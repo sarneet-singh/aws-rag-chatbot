@@ -41,7 +41,9 @@ def scrape_aws_blogs(max_pages: int = 5) -> list[dict]:
             date_tag = article.find(class_="blog-post-meta")
             published_date = date_tag.get_text(strip=True) if date_tag else ""
             content_soup = _get(source_url)
-            content = content_soup.get_text(separator=" ", strip=True) if content_soup else title
+            if content_soup is None:
+                continue
+            content = content_soup.get_text(separator=" ", strip=True)
             docs.append({"title": title, "content": content, "source_url": source_url,
                          "published_date": published_date, "doc_type": "blog"})
     return docs
@@ -82,18 +84,21 @@ def scrape_new_announcements(max_pages: int = 3) -> list[dict]:
     return docs
 
 
-def upload_raw_docs(docs: list[dict], bucket: str) -> None:
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+def upload_raw_docs(docs: list[dict], bucket: str, run_id: str | None = None) -> str:
+    if run_id is None:
+        run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     for doc in docs:
         key = f"{run_id}/{uuid.uuid4()}.json"
         S3.put_object(Bucket=bucket, Key=key, Body=json.dumps(doc), ContentType="application/json")
     print(f"Uploaded {len(docs)} docs to s3://{bucket}/")
+    return run_id
 
 
 def handler(event: dict, context) -> dict:
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     all_docs = []
     all_docs.extend(scrape_aws_blogs())
     all_docs.extend(scrape_whitepapers())
     all_docs.extend(scrape_new_announcements())
-    upload_raw_docs(all_docs, RAW_BUCKET)
-    return {"statusCode": 200, "body": json.dumps({"docs_ingested": len(all_docs)})}
+    upload_raw_docs(all_docs, RAW_BUCKET, run_id=run_id)
+    return {"statusCode": 200, "run_prefix": run_id, "body": json.dumps({"docs_ingested": len(all_docs)})}

@@ -24,6 +24,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
       { Effect = "Allow", Action = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query"], Resource = [aws_dynamodb_table.sessions.arn, aws_dynamodb_table.feedback.arn] },
       { Effect = "Allow", Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource = "*" },
       { Effect = "Allow", Action = ["ssm:GetParameter"], Resource = "arn:aws:ssm:*:*:parameter/${var.project_name}/*" },
+      { Effect = "Allow", Action = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"], Resource = "*" },
     ]
   })
 }
@@ -46,6 +47,9 @@ resource "aws_lambda_function" "rag" {
       DYNAMODB_FEEDBACK_TABLE   = aws_dynamodb_table.feedback.name
     }
   }
+  tracing_config {
+    mode = "Active"
+  }
 }
 
 resource "aws_lambda_function" "feedback" {
@@ -65,6 +69,9 @@ resource "aws_lambda_function" "feedback" {
       DYNAMODB_SESSIONS_TABLE   = aws_dynamodb_table.sessions.name
       DYNAMODB_FEEDBACK_TABLE   = aws_dynamodb_table.feedback.name
     }
+  }
+  tracing_config {
+    mode = "Active"
   }
 }
 

@@ -52,4 +52,4 @@ def handler(event: dict, context) -> dict:
                 key = f"{run_prefix}/{chunk['chunk_id']}.json"
                 S3.put_object(Bucket=CHUNKS_BUCKET, Key=key, Body=json.dumps(chunk), ContentType="application/json")
             total_chunks += len(chunks)
-    return {"statusCode": 200, "body": json.dumps({"chunks_created": total_chunks})}
+    return {"statusCode": 200, "run_prefix": run_prefix, "body": json.dumps({"chunks_created": total_chunks})}

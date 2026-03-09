@@ -12,6 +12,10 @@ resource "aws_dynamodb_table" "sessions" {
     name = "timestamp"
     type = "S"
   }
+
+  point_in_time_recovery {
+    enabled = true
+  }
 }
 
 resource "aws_dynamodb_table" "feedback" {
@@ -27,5 +31,9 @@ resource "aws_dynamodb_table" "feedback" {
   attribute {
     name = "message_id"
     type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 }

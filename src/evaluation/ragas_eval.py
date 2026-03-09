@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 
 import boto3
 from boto3.dynamodb.conditions import Attr
+from ragas import evaluate
+from ragas.metrics import faithfulness, answer_relevancy, context_recall
+from datasets import Dataset
 
 DDB = boto3.resource("dynamodb")
 S3 = boto3.client("s3")
@@ -18,10 +21,6 @@ def fetch_recent_sessions(limit: int = 100) -> list[dict]:
 
 
 def run_ragas(records: list[dict]) -> dict:
-    from ragas import evaluate
-    from ragas.metrics import faithfulness, answer_relevancy, context_recall
-    from datasets import Dataset
-
     dataset = Dataset.from_list([{
         "question": r["query"],
         "answer": r["answer"],

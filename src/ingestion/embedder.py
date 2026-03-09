@@ -15,19 +15,23 @@ OPENAI_API_KEY_SSM_PATH = os.environ["OPENAI_API_KEY_SSM_PATH"]
 EMBEDDING_MODEL = "text-embedding-3-small"
 BATCH_SIZE = 50
 
+_pinecone_index = None
+
 
 def get_pinecone_index():
-    pc = Pinecone(api_key=get_secret(PINECONE_API_KEY_SSM_PATH))
-    return pc.Index(PINECONE_INDEX_NAME)
+    global _pinecone_index
+    if _pinecone_index is None:
+        pc = Pinecone(api_key=get_secret(PINECONE_API_KEY_SSM_PATH))
+        _pinecone_index = pc.Index(PINECONE_INDEX_NAME)
+    return _pinecone_index
 
 
 def embed_and_upsert(chunks: list[dict]) -> None:
-    litellm.api_key = get_secret(OPENAI_API_KEY_SSM_PATH)
     index = get_pinecone_index()
     for i in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[i : i + BATCH_SIZE]
         texts = [c["chunk_text"] for c in batch]
-        response = litellm.embedding(model=EMBEDDING_MODEL, input=texts)
+        response = litellm.embedding(model=EMBEDDING_MODEL, input=texts, api_key=get_secret(OPENAI_API_KEY_SSM_PATH))
         vectors = [
             {
                 "id": chunk["chunk_id"],
@@ -49,10 +53,13 @@ def embed_and_upsert(chunks: list[dict]) -> None:
 def handler(event: dict, context) -> dict:
     run_prefix = event.get("run_prefix", "")
     paginator = S3.get_paginator("list_objects_v2")
-    chunks = []
+    total_vectors = 0
     for page in paginator.paginate(Bucket=CHUNKS_BUCKET, Prefix=run_prefix):
+        page_chunks = []
         for obj in page.get("Contents", []):
             chunk = json.loads(S3.get_object(Bucket=CHUNKS_BUCKET, Key=obj["Key"])["Body"].read())
-            chunks.append(chunk)
-    embed_and_upsert(chunks)
-    return {"statusCode": 200, "body": json.dumps({"vectors_upserted": len(chunks)})}
+            page_chunks.append(chunk)
+        if page_chunks:
+            embed_and_upsert(page_chunks)
+            total_vectors += len(page_chunks)
+    return {"statusCode": 200, "body": json.dumps({"vectors_upserted": total_vectors})}

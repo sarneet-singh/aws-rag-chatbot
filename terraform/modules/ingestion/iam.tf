@@ -18,7 +18,30 @@ resource "aws_iam_role_policy" "lambda_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      { Effect = "Allow", Action = ["s3:*"], Resource = ["${aws_s3_bucket.raw.arn}/*", "${aws_s3_bucket.chunks.arn}/*", aws_s3_bucket.raw.arn, aws_s3_bucket.chunks.arn] },
+      {
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
+        Resource = ["${aws_s3_bucket.raw.arn}/*"]
+        Sid = "ScraperRawWrite"
+      },
+      {
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:ListBucket"]
+        Resource = [aws_s3_bucket.raw.arn, "${aws_s3_bucket.raw.arn}/*"]
+        Sid = "ChunkerRawRead"
+      },
+      {
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
+        Resource = ["${aws_s3_bucket.chunks.arn}/*"]
+        Sid = "ChunkerChunksWrite"
+      },
+      {
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:ListBucket"]
+        Resource = [aws_s3_bucket.chunks.arn, "${aws_s3_bucket.chunks.arn}/*"]
+        Sid = "EmbedderChunksRead"
+      },
       { Effect = "Allow", Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource = "*" },
       { Effect = "Allow", Action = ["ssm:GetParameter"], Resource = "arn:aws:ssm:*:*:parameter/${var.project_name}/*" },
     ]

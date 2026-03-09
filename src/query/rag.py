@@ -18,12 +18,18 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 COMPLETION_MODEL = "gpt-4o-mini"
 TOP_K = 5
 
+_pinecone_index = None
+
+
 def _ddb():
     return boto3.resource("dynamodb")
 
 
 def get_pinecone_index():
-    return Pinecone(api_key=get_secret(PINECONE_API_KEY_SSM_PATH)).Index(PINECONE_INDEX_NAME)
+    global _pinecone_index
+    if _pinecone_index is None:
+        _pinecone_index = Pinecone(api_key=get_secret(PINECONE_API_KEY_SSM_PATH)).Index(PINECONE_INDEX_NAME)
+    return _pinecone_index
 
 
 SYSTEM_PROMPT = """You are an expert AWS Solutions Architect assistant.
@@ -33,8 +39,8 @@ Always be concise and accurate. Do not make up AWS service details."""
 
 
 def query_rag(query: str, session_id: str) -> dict:
-    litellm.api_key = get_secret(OPENAI_API_KEY_SSM_PATH)
-    embed_response = litellm.embedding(model=EMBEDDING_MODEL, input=[query])
+    api_key = get_secret(OPENAI_API_KEY_SSM_PATH)
+    embed_response = litellm.embedding(model=EMBEDDING_MODEL, input=[query], api_key=api_key)
     query_vector = embed_response.data[0].embedding
 
     index = get_pinecone_index()
@@ -56,7 +62,7 @@ def query_rag(query: str, session_id: str) -> dict:
         {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"},
     ]
 
-    completion = litellm.completion(model=COMPLETION_MODEL, messages=messages)
+    completion = litellm.completion(model=COMPLETION_MODEL, messages=messages, api_key=api_key)
     answer = completion.choices[0].message.content
 
     message_id = str(uuid.uuid4())
@@ -79,16 +85,25 @@ def handler(event: dict, context) -> dict:
     session_id = body.get("session_id", str(uuid.uuid4()))
     if not query:
         return {"statusCode": 400, "body": json.dumps({"error": "query is required"})}
+    if len(query) > 2000:
+        return {"statusCode": 400, "body": json.dumps({"error": "query exceeds maximum length of 2000 characters"})}
     result = query_rag(query, session_id)
-    return {"statusCode": 200, "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"}, "body": json.dumps(result)}
+    return {"statusCode": 200, "headers": {"Content-Type": "application/json"}, "body": json.dumps(result)}
 
 
 def feedback_handler(event: dict, context) -> dict:
     body = json.loads(event.get("body", "{}"))
+    session_id = body.get("session_id")
+    message_id = body.get("message_id")
+    rating = body.get("rating")
+    if not session_id or not message_id or rating is None:
+        return {"statusCode": 400, "body": json.dumps({"error": "session_id, message_id, and rating are required"})}
+    if rating not in ["up", "down"]:
+        return {"statusCode": 400, "body": json.dumps({"error": "rating must be 'up' or 'down'"})}
     _ddb().Table(FEEDBACK_TABLE).put_item(Item={
-        "session_id": body["session_id"],
-        "message_id": body["message_id"],
-        "rating": body["rating"],
+        "session_id": session_id,
+        "message_id": message_id,
+        "rating": rating,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
     return {"statusCode": 200, "body": json.dumps({"ok": True})}

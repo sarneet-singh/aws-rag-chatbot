@@ -16,6 +16,7 @@ resource "aws_sfn_state_machine" "ingestion" {
       Chunk = {
         Type       = "Task"
         Resource   = aws_lambda_function.chunker.arn
+        Parameters = { "run_prefix.$" = "$.scrape_result.run_prefix" }
         ResultPath = "$.chunk_result"
         Next       = "Embed"
         Catch      = [{ ErrorEquals = ["States.ALL"], Next = "NotifyFailure", ResultPath = "$.error" }]
@@ -24,6 +25,7 @@ resource "aws_sfn_state_machine" "ingestion" {
       Embed = {
         Type       = "Task"
         Resource   = aws_lambda_function.embedder.arn
+        Parameters = { "run_prefix.$" = "$.chunk_result.run_prefix" }
         ResultPath = "$.embed_result"
         End        = true
         Catch      = [{ ErrorEquals = ["States.ALL"], Next = "NotifyFailure", ResultPath = "$.error" }]

@@ -7,12 +7,12 @@ export function login() {
 }
 
 export function logout() {
-  localStorage.removeItem("id_token");
+  sessionStorage.removeItem("id_token");
   window.location.href = `${COGNITO_DOMAIN}/logout?client_id=${CLIENT_ID}&logout_uri=${window.location.origin}`;
 }
 
 export function getToken() {
-  return localStorage.getItem("id_token");
+  return sessionStorage.getItem("id_token");
 }
 
 export async function handleCallback() {
@@ -26,7 +26,7 @@ export async function handleCallback() {
   });
   const data = await res.json();
   if (data.id_token) {
-    localStorage.setItem("id_token", data.id_token);
+    sessionStorage.setItem("id_token", data.id_token);
     window.location.href = "/";
   }
 }

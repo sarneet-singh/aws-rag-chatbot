@@ -71,3 +71,25 @@ def test_feedback_handler_stores_rating(dynamo_tables):
     table = dynamo_tables.Table("test-feedback")
     item = table.get_item(Key={"session_id": "sess-1", "message_id": "msg-1"})
     assert item["Item"]["rating"] == "up"
+
+
+def test_handler_returns_400_for_long_query(dynamo_tables):
+    from src.query.rag import handler
+    long_query = "a" * 2001
+    event = {"body": json.dumps({"query": long_query, "session_id": "sess-1"})}
+    response = handler(event, {})
+    assert response["statusCode"] == 400
+
+
+def test_feedback_handler_returns_400_for_missing_fields(dynamo_tables):
+    from src.query.rag import feedback_handler
+    event = {"body": json.dumps({})}
+    response = feedback_handler(event, {})
+    assert response["statusCode"] == 400
+
+
+def test_feedback_handler_returns_400_for_invalid_rating(dynamo_tables):
+    from src.query.rag import feedback_handler
+    event = {"body": json.dumps({"session_id": "s", "message_id": "m", "rating": "invalid"})}
+    response = feedback_handler(event, {})
+    assert response["statusCode"] == 400

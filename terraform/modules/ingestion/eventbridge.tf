@@ -7,4 +7,9 @@ resource "aws_cloudwatch_event_target" "sfn" {
   rule     = aws_cloudwatch_event_rule.weekly.name
   arn      = aws_sfn_state_machine.ingestion.arn
   role_arn = aws_iam_role.sfn.arn
+
+  retry_policy {
+    maximum_event_age_in_seconds = 3600
+    maximum_retry_attempts       = 3
+  }
 }
