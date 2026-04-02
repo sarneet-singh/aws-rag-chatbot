@@ -1,18 +1,18 @@
 data "archive_file" "scraper" {
   type        = "zip"
-  source_dir  = "${path.root}/../../src/ingestion"
+  source_dir  = "${path.root}/../src/ingestion"
   output_path = "${path.module}/builds/scraper.zip"
 }
 
 data "archive_file" "chunker" {
   type        = "zip"
-  source_dir  = "${path.root}/../../src/ingestion"
+  source_dir  = "${path.root}/../src/ingestion"
   output_path = "${path.module}/builds/chunker.zip"
 }
 
 data "archive_file" "embedder" {
   type        = "zip"
-  source_dir  = "${path.root}/../../src/ingestion"
+  source_dir  = "${path.root}/../src/ingestion"
   output_path = "${path.module}/builds/embedder.zip"
 }
 

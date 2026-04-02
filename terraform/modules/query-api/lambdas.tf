@@ -1,6 +1,6 @@
 data "archive_file" "query" {
   type        = "zip"
-  source_dir  = "${path.root}/../../src/query"
+  source_dir  = "${path.root}/../src/query"
   output_path = "${path.module}/builds/query.zip"
 }
 
