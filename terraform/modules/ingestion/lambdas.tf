@@ -16,6 +16,31 @@ data "archive_file" "embedder" {
   output_path = "${path.module}/builds/embedder.zip"
 }
 
+resource "aws_s3_bucket" "artifacts" {
+  bucket = "${var.project_name}-lambda-artifacts"
+}
+
+resource "aws_s3_object" "scraper" {
+  bucket = aws_s3_bucket.artifacts.id
+  key    = "scraper.zip"
+  source = data.archive_file.scraper.output_path
+  etag   = data.archive_file.scraper.output_md5
+}
+
+resource "aws_s3_object" "chunker" {
+  bucket = aws_s3_bucket.artifacts.id
+  key    = "chunker.zip"
+  source = data.archive_file.chunker.output_path
+  etag   = data.archive_file.chunker.output_md5
+}
+
+resource "aws_s3_object" "embedder" {
+  bucket = aws_s3_bucket.artifacts.id
+  key    = "embedder.zip"
+  source = data.archive_file.embedder.output_path
+  etag   = data.archive_file.embedder.output_md5
+}
+
 resource "aws_s3_bucket" "raw" {
   bucket = "${var.project_name}-raw-docs"
 }
@@ -87,7 +112,8 @@ resource "aws_lambda_function" "scraper" {
   runtime          = "python3.12"
   timeout          = 600
   memory_size      = 512
-  filename         = data.archive_file.scraper.output_path
+  s3_bucket        = aws_s3_object.scraper.bucket
+  s3_key           = aws_s3_object.scraper.key
   source_code_hash = data.archive_file.scraper.output_base64sha256
   environment {
     variables = { RAW_BUCKET = aws_s3_bucket.raw.bucket }
@@ -101,7 +127,8 @@ resource "aws_lambda_function" "chunker" {
   runtime          = "python3.12"
   timeout          = 300
   memory_size      = 256
-  filename         = data.archive_file.chunker.output_path
+  s3_bucket        = aws_s3_object.chunker.bucket
+  s3_key           = aws_s3_object.chunker.key
   source_code_hash = data.archive_file.chunker.output_base64sha256
   environment {
     variables = { RAW_BUCKET = aws_s3_bucket.raw.bucket, CHUNKS_BUCKET = aws_s3_bucket.chunks.bucket }
@@ -115,7 +142,8 @@ resource "aws_lambda_function" "embedder" {
   runtime          = "python3.12"
   timeout          = 600
   memory_size      = 512
-  filename         = data.archive_file.embedder.output_path
+  s3_bucket        = aws_s3_object.embedder.bucket
+  s3_key           = aws_s3_object.embedder.key
   source_code_hash = data.archive_file.embedder.output_base64sha256
   environment {
     variables = {

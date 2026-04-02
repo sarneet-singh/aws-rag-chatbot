@@ -4,6 +4,17 @@ data "archive_file" "query" {
   output_path = "${path.module}/builds/query.zip"
 }
 
+resource "aws_s3_bucket" "artifacts" {
+  bucket = "${var.project_name}-lambda-artifacts"
+}
+
+resource "aws_s3_object" "query" {
+  bucket = aws_s3_bucket.artifacts.id
+  key    = "query.zip"
+  source = data.archive_file.query.output_path
+  etag   = data.archive_file.query.output_md5
+}
+
 resource "aws_iam_role" "lambda" {
   name               = "${var.project_name}-query-lambda"
   assume_role_policy = jsonencode({
@@ -36,7 +47,8 @@ resource "aws_lambda_function" "rag" {
   runtime          = "python3.12"
   timeout          = 60
   memory_size      = 512
-  filename         = data.archive_file.query.output_path
+  s3_bucket        = aws_s3_object.query.bucket
+  s3_key           = aws_s3_object.query.key
   source_code_hash = data.archive_file.query.output_base64sha256
   environment {
     variables = {
@@ -59,7 +71,8 @@ resource "aws_lambda_function" "feedback" {
   runtime          = "python3.12"
   timeout          = 30
   memory_size      = 256
-  filename         = data.archive_file.query.output_path
+  s3_bucket        = aws_s3_object.query.bucket
+  s3_key           = aws_s3_object.query.key
   source_code_hash = data.archive_file.query.output_base64sha256
   environment {
     variables = {
