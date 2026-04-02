@@ -5,6 +5,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+PIP=$(command -v pip3 || command -v pip || true)
+if [[ -z "$PIP" ]]; then
+  echo "Error: pip not found. Install Python 3 or activate a virtualenv." >&2
+  exit 1
+fi
+
 build() {
   local name="$1"
   local src="$2"
@@ -13,7 +19,7 @@ build() {
   rm -rf "$dest"
   mkdir -p "$dest"
   cp -r "$src"/. "$dest/"
-  pip install \
+  "$PIP" install \
     --quiet \
     --target "$dest" \
     --platform manylinux2014_x86_64 \
