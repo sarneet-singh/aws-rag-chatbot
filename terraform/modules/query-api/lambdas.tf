@@ -34,7 +34,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
     Statement = [
       { Effect = "Allow", Action = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query"], Resource = [aws_dynamodb_table.sessions.arn, aws_dynamodb_table.feedback.arn] },
       { Effect = "Allow", Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource = "*" },
-      { Effect = "Allow", Action = ["ssm:GetParameter"], Resource = "arn:aws:ssm:*:*:parameter/${var.project_name}/*" },
+      { Effect = "Allow", Action = ["ssm:GetParameter"], Resource = ["arn:aws:ssm:*:*:parameter${var.openai_api_key_ssm_path}", "arn:aws:ssm:*:*:parameter${var.pinecone_api_key_ssm_path}"] },
       { Effect = "Allow", Action = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"], Resource = "*" },
     ]
   })
