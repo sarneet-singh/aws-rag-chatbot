@@ -1,16 +1,25 @@
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
+locals {
+  # Appended to globally-scoped names (S3 buckets, Cognito domain) to ensure uniqueness
+  project_id = "${var.project_name}-${random_id.suffix.hex}"
+}
+
 module "secrets" {
-  source           = "./modules/secrets"
-  project_name     = var.project_name
+  source       = "./modules/secrets"
+  project_name = var.project_name
 }
 
 module "frontend" {
   source       = "./modules/frontend"
-  project_name = var.project_name
+  project_name = local.project_id
 }
 
 module "auth" {
   source            = "./modules/auth"
-  project_name      = var.project_name
+  project_name      = local.project_id
   aws_region        = var.aws_region
   cloudfront_domain = module.frontend.cloudfront_domain
 }
@@ -23,7 +32,7 @@ module "monitoring" {
 
 module "ingestion" {
   source                    = "./modules/ingestion"
-  project_name              = var.project_name
+  project_name              = local.project_id
   aws_region                = var.aws_region
   pinecone_index_name       = var.pinecone_index_name
   openai_api_key_ssm_path   = module.secrets.openai_api_key_path
@@ -33,7 +42,7 @@ module "ingestion" {
 
 module "query_api" {
   source                    = "./modules/query-api"
-  project_name              = var.project_name
+  project_name              = local.project_id
   aws_region                = var.aws_region
   cloudfront_domain         = module.frontend.cloudfront_domain
   cognito_user_pool_id      = module.auth.user_pool_id
