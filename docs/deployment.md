@@ -67,6 +67,15 @@ aws dynamodb create-table \
 
 ## Step 4 — Deploy Infrastructure
 
+Build the Lambda packages first (bundles Python dependencies into the zip):
+
+```bash
+chmod +x scripts/build-lambdas.sh
+./scripts/build-lambdas.sh
+```
+
+Then deploy:
+
 ```bash
 cd terraform
 terraform init

@@ -4,6 +4,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .terraform/
+terraform/backend.tf
+terraform/modules/**/builds/
 *.tfstate
 *.tfstate.backup
 node_modules/
