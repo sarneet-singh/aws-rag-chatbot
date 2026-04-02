@@ -7,7 +7,10 @@ import boto3
 import litellm
 from pinecone import Pinecone
 
-from src.utils.ssm import get_secret
+try:
+    from ssm import get_secret
+except ModuleNotFoundError:
+    from src.utils.ssm import get_secret
 
 PINECONE_INDEX_NAME = os.environ["PINECONE_INDEX_NAME"]
 PINECONE_API_KEY_SSM_PATH = os.environ["PINECONE_API_KEY_SSM_PATH"]

@@ -5,7 +5,10 @@ import boto3
 import litellm
 from pinecone import Pinecone
 
-from src.utils.ssm import get_secret
+try:
+    from ssm import get_secret
+except ModuleNotFoundError:
+    from src.utils.ssm import get_secret
 
 S3 = boto3.client("s3")
 CHUNKS_BUCKET = os.environ["CHUNKS_BUCKET"]

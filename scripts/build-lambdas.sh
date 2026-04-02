@@ -19,6 +19,7 @@ build() {
   rm -rf "$dest"
   mkdir -p "$dest"
   cp -r "$src"/. "$dest/"
+  cp "$ROOT/src/utils/ssm.py" "$dest/"
   "$PIP" install \
     --quiet \
     --target "$dest" \
