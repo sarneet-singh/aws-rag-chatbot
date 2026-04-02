@@ -1,6 +1,6 @@
 # AWS RAG Chatbot
 
-A fully serverless RAG (Retrieval-Augmented Generation) chatbot that answers AWS architecture questions. Ingests AWS blog posts, whitepapers, and announcements on a weekly schedule, embeds them into a Pinecone vector store, and serves answers with cited sources through a React frontend.
+A fully serverless RAG (Retrieval-Augmented Generation) chatbot that answers AWS architecture questions. Recursively crawls official AWS documentation (Well-Architected Framework, CloudFront, Lambda, S3, DynamoDB, API Gateway, VPC), AWS blog posts, and announcements on a weekly schedule, embeds them into a Pinecone vector store, and serves answers with cited sources through a React frontend.
 
 ## Architecture
 
@@ -12,7 +12,7 @@ flowchart LR
 
     subgraph SFN [Step Functions — Ingestion Pipeline]
         direction LR
-        SC[Scraper Lambda\nAWS blogs · whitepapers\n· announcements]
+        SC[Scraper Lambda\nAWS docs · blogs\n· announcements]
         CH[Chunker Lambda\n512-token chunks\n50-token overlap]
         EM[Embedder Lambda\ntext-embedding-3-small\nupsert to Pinecone]
         SC -->|run_prefix| CH -->|run_prefix| EM
@@ -36,7 +36,7 @@ flowchart LR
     U[User Browser] -->|HTTPS| CF[CloudFront]
     CF -->|static assets| S3F[(S3\nfrontend)]
     CF -->|OAuth redirect| COG[Cognito\nUser Pool]
-    COG -->|JWT id_token| U
+    COG -->|JWT access_token| U
 
     U -->|POST /query\nBearer JWT| APIGW[API Gateway\nHTTP API]
     APIGW -->|JWT authorizer| COG
@@ -80,7 +80,7 @@ flowchart LR
 .
 ├── src/
 │   ├── ingestion/
-│   │   ├── scraper.py        # Fetches AWS blogs, whitepapers, announcements
+│   │   ├── scraper.py        # Recursively crawls AWS docs, blogs, announcements
 │   │   ├── chunker.py        # 512-token sliding-window chunker (tiktoken)
 │   │   └── embedder.py       # Embeds chunks and upserts to Pinecone
 │   ├── query/
@@ -115,7 +115,8 @@ flowchart LR
 │       ├── query-api/        # API Gateway, RAG/feedback Lambdas, DynamoDB
 │       └── secrets/          # SSM parameter path outputs (no values in state)
 ├── scripts/
-│   └── setup-secrets.sh      # Pre-deploy: creates SSM SecureString params
+│   ├── setup-secrets.sh      # Pre-deploy: creates SSM SecureString params
+│   └── build-lambdas.sh      # Bundles Python deps into Lambda zips
 ├── docs/
 │   └── deployment.md         # Full deployment walkthrough
 ├── pyproject.toml
@@ -129,7 +130,7 @@ flowchart LR
 - Node.js >= 18 and npm
 - Python 3.12
 - [OpenAI API key](https://platform.openai.com)
-- [Pinecone API key](https://app.pinecone.io) + index named `aws-rag` (dimension: 1536, metric: cosine)
+- [Pinecone API key](https://app.pinecone.io) + index named `aws-rag` (dimension: 1536, metric: cosine, type: dense)
 
 ## Quick Start
 
@@ -141,10 +142,19 @@ chmod +x scripts/setup-secrets.sh
 ```
 
 This creates two SSM SecureString parameters:
-- `/aws-rag-chatbot/openai-api-key`
-- `/aws-rag-chatbot/pinecone-api-key`
+- `/rag-chatbot/openai_api_key`
+- `/rag-chatbot/pinecone_api_key`
 
-### 2. Deploy infrastructure
+### 2. Build Lambda packages
+
+Dependencies must be bundled before Terraform can zip and deploy them:
+
+```bash
+chmod +x scripts/build-lambdas.sh
+./scripts/build-lambdas.sh
+```
+
+### 3. Deploy infrastructure
 
 ```bash
 cd terraform
@@ -154,7 +164,7 @@ terraform apply
 
 Outputs include `cloudfront_domain`, `api_endpoint`, `cognito_user_pool_id`, `cognito_client_id`, and `state_machine_arn`.
 
-### 3. Build and deploy frontend
+### 4. Build and deploy frontend
 
 ```bash
 cd frontend
@@ -205,8 +215,8 @@ All secrets are stored in SSM Parameter Store — no `.env` files needed in prod
 
 | SSM Path | Description |
 |---|---|
-| `/aws-rag-chatbot/openai-api-key` | OpenAI API key |
-| `/aws-rag-chatbot/pinecone-api-key` | Pinecone API key |
+| `/rag-chatbot/openai_api_key` | OpenAI API key |
+| `/rag-chatbot/pinecone_api_key` | Pinecone API key |
 
 Lambda environment variables (non-secret) are managed by Terraform.
 

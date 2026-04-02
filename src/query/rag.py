@@ -44,7 +44,8 @@ Always be concise and accurate. Do not make up AWS service details."""
 def query_rag(query: str, session_id: str) -> dict:
     api_key = get_secret(OPENAI_API_KEY_SSM_PATH)
     embed_response = litellm.embedding(model=EMBEDDING_MODEL, input=[query], api_key=api_key)
-    query_vector = embed_response.data[0].embedding
+    item = embed_response.data[0]
+    query_vector = item["embedding"] if isinstance(item, dict) else item.embedding
 
     index = get_pinecone_index()
     results = index.query(vector=query_vector, top_k=TOP_K, include_metadata=True)
