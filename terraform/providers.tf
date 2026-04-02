@@ -10,7 +10,7 @@ terraform {
   # Uncomment and configure before first apply:
   # backend "s3" {
   #   bucket         = "your-terraform-state-bucket"
-  #   key            = "aws-rag-chatbot/terraform.tfstate"
+  #   key            = "rag-chatbot/terraform.tfstate"
   #   region         = "us-east-1"
   #   encrypt        = true
   #   dynamodb_table = "terraform-state-lock"

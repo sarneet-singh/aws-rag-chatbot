@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  default = "aws-rag-chatbot"
+  default = "rag-chatbot"
 }
 
 variable "pinecone_index_name" {
