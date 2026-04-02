@@ -38,7 +38,7 @@ def embed_and_upsert(chunks: list[dict]) -> None:
         vectors = [
             {
                 "id": chunk["chunk_id"],
-                "values": item.embedding,
+                "values": item["embedding"] if isinstance(item, dict) else item.embedding,
                 "metadata": {
                     "chunk_text": chunk["chunk_text"],
                     "title": chunk["title"],
