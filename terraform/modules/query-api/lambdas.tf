@@ -5,7 +5,7 @@ data "archive_file" "query" {
 }
 
 resource "aws_s3_bucket" "artifacts" {
-  bucket = "${var.project_name}-lambda-artifacts"
+  bucket = "${var.project_name}-query-artifacts"
 }
 
 resource "aws_s3_object" "query" {

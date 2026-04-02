@@ -17,7 +17,7 @@ data "archive_file" "embedder" {
 }
 
 resource "aws_s3_bucket" "artifacts" {
-  bucket = "${var.project_name}-lambda-artifacts"
+  bucket = "${var.project_name}-ingest-artifacts"
 }
 
 resource "aws_s3_object" "scraper" {
